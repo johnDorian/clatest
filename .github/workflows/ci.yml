@@ -23,7 +23,7 @@ jobs:
       run: ./bin/task build
 
     - name: Test
-      run: ./bin/task test -coverprofile=coverage.txt -covermode=atomic
+      run: ./bin/task test -- -coverprofile=coverage.txt -covermode=atomic
     
     - name: Upload code coverage
       uses: codecov/codecov-action@v1
