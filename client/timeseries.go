@@ -14,6 +14,7 @@ var (
 	header = []string{"Date", "Cases", "Deaths", "Recovered"}
 )
 
+//Day
 type Day struct {
 	Country   string
 	Date      time.Time
@@ -22,17 +23,20 @@ type Day struct {
 	Recovered int
 }
 
+//TimeSeries holds a slice of days
 type TimeSeries struct {
-	Data []Day
+	Data []Day // A slice of daily data
 }
 
-func (ts TimeSeries) Order() {
+//Order the data in chronological order
+func (ts *TimeSeries) Order() {
 	//Now it's time to sort it
 	sort.Slice(ts.Data, func(i, j int) bool {
 		return ts.Data[i].Date.Before(ts.Data[j].Date)
 	})
 }
 
+//Filter filter the time series data based on from, to or latest
 func (ts *TimeSeries) Filter(from, to time.Time, latest bool) {
 	if latest {
 		ts.Data = ts.Data[(len(ts.Data) - 1):]
@@ -49,7 +53,7 @@ func (ts *TimeSeries) Filter(from, to time.Time, latest bool) {
 	ts.Data = filteredTS
 }
 
-//TODO: move this to the data
+//Print print the timeseries data to an os.File
 func (ts *TimeSeries) Print(output *os.File, format string) {
 	exportData := ts.toStringArray()
 	switch format {

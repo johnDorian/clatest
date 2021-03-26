@@ -1,3 +1,7 @@
+/*
+Package client provides a method to query an API endpoint to extract data about
+the latest covid numbers and report these to the cmd line via stdout or save them as a csv or markdown file
+*/
 package client
 
 import (
@@ -9,17 +13,20 @@ import (
 	"time"
 )
 
+//APIClient the client and the request url for the api server
 type APIClient struct {
 	Client     *http.Client
-	RequestURI string
+	RequestURL string
 }
 
+//RawData the raw response timeseries
 type RawData struct {
 	Cases     map[string]int `json:"cases"`
 	Deaths    map[string]int `json:"deaths"`
 	Recovered map[string]int `json:"recovered"`
 }
 
+//APIResponse the main response from the server
 type APIResponse struct {
 	Country    string   `json:"country"`
 	Province   []string `json:"province"`
@@ -28,23 +35,25 @@ type APIResponse struct {
 }
 
 var (
-	ErrorBadDateFormat = "Incorrect Date Format"
+	ErrorBadDateFormat = errors.New("Incorrect Date Format") //Bad date format from the command line
 )
 
-func NewClient(RequestURI string) *APIClient {
+//NewClient returns a client for the user to query the api server
+func NewClient(RequestURL string) *APIClient {
 	httpClient := &http.Client{
 		Transport: &http.Transport{
 			IdleConnTimeout: 10 * time.Second,
 		},
 	}
-	return &APIClient{Client: httpClient, RequestURI: RequestURI}
+	return &APIClient{Client: httpClient, RequestURL: RequestURL}
 }
 
+//Get the main get function which queries the server
 func (c *APIClient) Get(country string, from, to time.Time, latest bool) (APIResponse, error) {
 	var data APIResponse
 	totalDays := calcDays(from)
 
-	resp, err := c.Client.Get(fmt.Sprintf(c.RequestURI, country, totalDays))
+	resp, err := c.Client.Get(fmt.Sprintf(c.RequestURL, country, totalDays))
 
 	if err != nil {
 		return data, err
@@ -66,6 +75,7 @@ func (c *APIClient) Get(country string, from, to time.Time, latest bool) (APIRes
 
 }
 
+//FormatResponse format the timeseries map to something with more structure (i.e. []Day)
 func (r *APIResponse) FormatResponse(from, to time.Time, latest bool) error {
 	var timeSeries TimeSeries
 	for date := range r.RawData.Cases {
@@ -92,7 +102,7 @@ func (r *APIResponse) FormatResponse(from, to time.Time, latest bool) error {
 func cleanReturnedDate(date string) (time.Time, error) {
 	dateParts := strings.Split(date, "/")
 	if len(dateParts) != 3 {
-		return time.Time{}, errors.New(ErrorBadDateFormat)
+		return time.Time{}, ErrorBadDateFormat
 	}
 	cleanDate := fmt.Sprintf("20%v-%v%v-%v%v", dateParts[2], strings.Repeat("0", 2-len(dateParts[0])), dateParts[0], strings.Repeat("0", 2-len(dateParts[1])), dateParts[1])
 	formattedTime, err := time.Parse("2006-01-02", cleanDate)

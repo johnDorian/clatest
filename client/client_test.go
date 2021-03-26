@@ -1,8 +1,11 @@
 package client
 
 import (
+	"encoding/json"
 	"io/ioutil"
+	"log"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
@@ -10,23 +13,131 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var responseData = `{
+	"country":"Australia",
+	"province":[
+		"australian capital territory",
+		"new south wales",
+		"northern territory",
+		"queensland",
+		"south australia",
+		"tasmania",
+		"victoria",
+		"western australia"
+		],
+		"timeline":{
+			"cases":{
+				"3/16/21":29154,
+				"3/17/21":29166,
+				"3/18/21":29183,
+				"3/19/21":29192,
+				"3/20/21":29196,
+				"3/21/21":29206,
+				"3/22/21":29211,
+				"3/23/21":29221,
+				"3/24/21":29230,
+				"3/25/21":29239
+				},
+			"deaths":{
+				"3/16/21":909,
+				"3/17/21":909,
+				"3/18/21":909,
+				"3/19/21":909,
+				"3/20/21":909,
+				"3/21/21":909,
+				"3/22/21":909,
+				"3/23/21":909,
+				"3/24/21":909,
+				"3/25/21":909
+				},
+			"recovered":{
+				"3/16/21":22960,
+				"3/17/21":22962,
+				"3/18/21":22963,
+				"3/19/21":22965,
+				"3/20/21":22966,
+				"3/21/21":22971,
+				"3/22/21":22977,
+				"3/23/21":22982,
+				"3/24/21":22988,
+				"3/25/21":22991
+			}
+		}
+	}
+`
+
+func TestGet(t *testing.T) {
+	assert := assert.New(t)
+	responseJSON := new(APIResponse)
+	err := json.Unmarshal([]byte(responseData), responseJSON)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	tests := []struct {
+		country      string
+		from         time.Time
+		to           time.Time
+		latest       bool
+		expectedData []Day
+	}{
+		{country: "australia",
+			from:   time.Now(),
+			to:     time.Now(),
+			latest: true,
+			expectedData: []Day{
+				{
+					Country:   "Australia",
+					Date:      time.Date(2021, 3, 25, 0, 0, 0, 0, time.UTC),
+					Cases:     29239,
+					Deaths:    909,
+					Recovered: 22991,
+				},
+			},
+		},
+	}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		resp, _ := json.Marshal(responseJSON)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write(resp)
+	}))
+	defer server.Close()
+
+	client := NewClient(server.URL + "/%v%v")
+
+	for _, test := range tests {
+		apiResponse, err := client.Get(test.country, test.from, test.to, test.latest)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		assert.Equal(apiResponse.Country, responseJSON.Country)
+		assert.Equal(apiResponse.RawData.Cases, responseJSON.RawData.Cases)
+		assert.Equal(apiResponse.RawData.Deaths, responseJSON.RawData.Deaths)
+		assert.Equal(apiResponse.RawData.Recovered, responseJSON.RawData.Recovered)
+		assert.Equal(apiResponse.TimeSeries.Data, test.expectedData)
+
+	}
+
+}
 func TestCleanReturnedDate(t *testing.T) {
 	assert := assert.New(t)
 	tests := []struct {
 		in          string
 		expected    time.Time
-		expectedErr string
+		expectedErr error
 	}{
 		{in: "21-1-1", expected: time.Time{}, expectedErr: ErrorBadDateFormat},
-		{in: "1/1/21", expected: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC), expectedErr: ""},
+		{in: "1/1/21", expected: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC), expectedErr: nil},
 	}
 
 	for _, test := range tests {
 		formatted, err := cleanReturnedDate(test.in)
-		if test.expectedErr == "" {
-			assert.NoError(err)
+		if test.expectedErr != nil {
+			assert.Error(err)
 		} else {
-			assert.EqualError(err, test.expectedErr)
+			assert.NoError(err)
 		}
 		assert.Equal(test.expected, formatted)
 	}
@@ -58,7 +169,7 @@ func TestNewClient(t *testing.T) {
 	}
 	for _, test := range tests {
 		client := NewClient(test.in)
-		assert.Equal(test.expected, client.RequestURI)
+		assert.Equal(test.expected, client.RequestURL)
 	}
 
 }
