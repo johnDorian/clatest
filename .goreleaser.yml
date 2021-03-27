@@ -14,6 +14,8 @@ builds:
       - windows
       - darwin
 archives:
+  - format: binary
+  - name_template: "{{ .Binary }}"
   - replacements:
       darwin: Darwin
       linux: Linux
@@ -24,6 +26,7 @@ checksum:
   name_template: 'checksums.txt'
 snapshot:
   name_template: "{{ .Tag }}-next"
+
 changelog:
   sort: asc
   filters:

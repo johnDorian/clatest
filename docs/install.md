@@ -1,3 +1,3 @@
 # Installation
 
-this is how you install it
+The easiest way to 

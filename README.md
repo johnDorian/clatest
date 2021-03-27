@@ -9,7 +9,7 @@
 This is a small project to let you get the latest Covid numbers from the cmd line. The data is obtained from [https://disease.sh](https://disease.sh), please have a look at the [official documentation](https://disease.sh/docs/) for more information. For the purpose of this app, the John Hopkins data is queried. 
 
 
-For more information about using the tool, head over to documentation. 
+For more information about using the tool, head over to documentation. https://johndorian.github.io/clatest/
 
 ```bash
 clatest united states
