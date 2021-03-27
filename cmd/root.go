@@ -38,7 +38,8 @@ var rootCmd = &cobra.Command{
 statistics. The data is downloaded from disease.sh and is sourced from John 
 Hopkins.
 	`,
-	Args: cobra.MinimumNArgs(1),
+	Version: "v0.0.1",
+	Args:    cobra.MinimumNArgs(1),
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	Run: func(cmd *cobra.Command, args []string) {
