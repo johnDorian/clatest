@@ -9,4 +9,4 @@ tasks:
       - goreleaser --snapshot
   test:
     cmds: 
-      - go test -v ./client {{.CLI_ARGS}}
+      - go test -v ./client ./cmd {{.CLI_ARGS}}

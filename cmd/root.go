@@ -17,6 +17,7 @@ package cmd
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"time"
@@ -25,7 +26,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var from, to, extact, format string
+var from, to, exact, format string
 var latest = false
 var RequestURI = "https://disease.sh/v3/covid-19/historical/%v?lastdays=%v"
 
@@ -41,23 +42,11 @@ Hopkins.
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	Run: func(cmd *cobra.Command, args []string) {
-		client := client.NewClient(RequestURI)
-
-		fromDate := parseDate(from)
-		toDate := parseDate(to)
-		if extact != "" {
-			exactDate := parseDate(extact)
-			fromDate = exactDate
-			toDate = exactDate
-		}
-
-		res, err := client.Get(strings.Join(args[:], " "), fromDate, toDate, latest)
+		err := run_cmd(strings.Join(args[:], " "), RequestURI, from, to, exact, format, os.Stdout)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
-		res.TimeSeries.Print(os.Stdout, format)
-
 	},
 }
 
@@ -77,16 +66,35 @@ func init() {
 
 	rootCmd.PersistentFlags().StringVarP(&from, "from", "f", yesterday, "first date to download data for")
 	rootCmd.PersistentFlags().StringVarP(&to, "to", "t", today, "last date to download data for")
-	rootCmd.PersistentFlags().StringVarP(&extact, "on", "o", "", "A single date to get")
+	rootCmd.PersistentFlags().StringVarP(&exact, "on", "o", "", "A single date to get")
 	rootCmd.PersistentFlags().StringVar(&format, "format", "markdown", "Output format (markdown, csv, tab)")
 
 }
 
-func parseDate(date string) time.Time {
-	parsedDate, err := time.Parse("2006-01-02", date)
+func run_cmd(country, RequestURI, from, to, exact string, format string, output io.Writer) error {
+	client := client.NewClient(RequestURI)
+
+	fromDate, err := time.Parse("2006-01-02", from)
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		return err
 	}
-	return parsedDate
+	toDate, err := time.Parse("2006-01-02", to)
+	if err != nil {
+		return err
+	}
+	if exact != "" {
+		exactDate, err := time.Parse("2006-01-02", exact)
+		if err != nil {
+			return err
+		}
+		fromDate = exactDate
+		toDate = exactDate
+	}
+
+	res, err := client.Get(country, fromDate, toDate, latest)
+	if err != nil {
+		return err
+	}
+	res.TimeSeries.Print(output, format)
+	return nil
 }
