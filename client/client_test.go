@@ -75,16 +75,19 @@ func TestGet(t *testing.T) {
 	}
 
 	tests := []struct {
-		country      string
-		from         time.Time
-		to           time.Time
-		latest       bool
-		expectedData []Day
+		country        string
+		from           time.Time
+		to             time.Time
+		latest         bool
+		expectedStatus int
+		expectedData   interface{}
 	}{
-		{country: "australia",
-			from:   time.Now(),
-			to:     time.Now(),
-			latest: true,
+		{
+			country:        "australia",
+			from:           time.Now(),
+			to:             time.Now(),
+			latest:         true,
+			expectedStatus: 200,
 			expectedData: []Day{
 				{
 					Country:   "Australia",
@@ -95,10 +98,37 @@ func TestGet(t *testing.T) {
 				},
 			},
 		},
+		{
+			country:        "australia",
+			from:           time.Date(2021, 3, 24, 0, 0, 0, 0, time.UTC),
+			to:             time.Date(2021, 3, 24, 0, 0, 0, 0, time.UTC),
+			latest:         false,
+			expectedStatus: 200,
+			expectedData: []Day{
+				{
+					Country:   "Australia",
+					Date:      time.Date(2021, 3, 24, 0, 0, 0, 0, time.UTC),
+					Cases:     29230,
+					Deaths:    909,
+					Recovered: 22988,
+				},
+			},
+		},
+		{
+			country:        "azzz",
+			expectedStatus: 502,
+			expectedData:   "country not found",
+		},
 	}
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		resp, _ := json.Marshal(responseJSON)
+		if !strings.Contains(strings.ToLower(r.URL.Path), "australia") {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusBadGateway)
+			w.Write([]byte(`{"message":"country not found"}`))
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write(resp)
@@ -109,14 +139,16 @@ func TestGet(t *testing.T) {
 
 	for _, test := range tests {
 		apiResponse, err := client.Get(test.country, test.from, test.to, test.latest)
-		if err != nil {
-			log.Fatalln(err)
+		switch test.expectedStatus {
+		case 200:
+			assert.Equal(apiResponse.Country, responseJSON.Country)
+			assert.Equal(apiResponse.RawData.Cases, responseJSON.RawData.Cases)
+			assert.Equal(apiResponse.RawData.Deaths, responseJSON.RawData.Deaths)
+			assert.Equal(apiResponse.RawData.Recovered, responseJSON.RawData.Recovered)
+			assert.Equal(apiResponse.TimeSeries.Data, test.expectedData)
+		case 502:
+			assert.Equal(err.Error(), test.expectedData)
 		}
-		assert.Equal(apiResponse.Country, responseJSON.Country)
-		assert.Equal(apiResponse.RawData.Cases, responseJSON.RawData.Cases)
-		assert.Equal(apiResponse.RawData.Deaths, responseJSON.RawData.Deaths)
-		assert.Equal(apiResponse.RawData.Recovered, responseJSON.RawData.Recovered)
-		assert.Equal(apiResponse.TimeSeries.Data, test.expectedData)
 
 	}
 

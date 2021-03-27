@@ -3,7 +3,7 @@ package client
 import (
 	"encoding/csv"
 	"fmt"
-	"os"
+	"io"
 	"sort"
 	"time"
 
@@ -14,7 +14,7 @@ var (
 	header = []string{"Date", "Cases", "Deaths", "Recovered"}
 )
 
-//Day
+//Day holds all the values for a given day
 type Day struct {
 	Country   string
 	Date      time.Time
@@ -54,7 +54,7 @@ func (ts *TimeSeries) Filter(from, to time.Time, latest bool) {
 }
 
 //Print print the timeseries data to an os.File
-func (ts *TimeSeries) Print(output *os.File, format string) {
+func (ts *TimeSeries) Print(output io.Writer, format string) {
 	exportData := ts.toStringArray()
 	switch format {
 	case "csv":
@@ -65,7 +65,7 @@ func (ts *TimeSeries) Print(output *os.File, format string) {
 
 }
 
-func (ts TimeSeries) toStringArray() [][]string {
+func (ts *TimeSeries) toStringArray() [][]string {
 	var strData [][]string
 	for _, obs := range ts.Data {
 		strData = append(strData, []string{
@@ -78,18 +78,18 @@ func (ts TimeSeries) toStringArray() [][]string {
 	return strData
 }
 
-func writeMarkdown(ts [][]string, header []string, output *os.File) {
+func writeMarkdown(ts [][]string, header []string, output io.Writer) {
 	table := tablewriter.NewWriter(output)
 	table.SetHeader(header)
 	table.SetCenterSeparator("|")
 	table.SetHeaderAlignment(tablewriter.ALIGN_LEFT)
 	table.SetAlignment(tablewriter.ALIGN_LEFT)
-	table.SetBorder(false) // Set Border to false
+	table.SetBorder(false)
 	table.AppendBulk(ts)
 	table.Render()
 }
 
-func writeCSV(ts [][]string, header []string, output *os.File) error {
+func writeCSV(ts [][]string, header []string, output io.Writer) error {
 
 	writer := csv.NewWriter(output)
 	err := writer.Write(header)
