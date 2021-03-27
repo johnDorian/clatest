@@ -1,0 +1,7 @@
+site_name: Clatest 
+theme:
+  name: material
+nav:
+    - Overview: index.md
+    - Installation: install.md
+    - Usage: using.md
