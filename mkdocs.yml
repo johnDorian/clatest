@@ -5,4 +5,4 @@ nav:
     - Overview: index.md
     - Installation: install.md
     - Usage: using.md
-    - Development development.md
+    - Development: development.md

@@ -1,6 +1,9 @@
 # Usage
 
-This is how you can use it.
+The tool is deigned to provide data based on the John Hopkins data on a country level. Currently, the tool provides daily deaths, recovered and total cases. It's possible to use the tool to get the latest data, a range of days or for an exact day. 
+
+
+## Query options
 
 ```bash
 clatest --help
@@ -19,19 +22,22 @@ Flags:
   -t, --to string       last date to download data for (default "2021-03-27")
 ```
 
+
+To get the latest data just query using the country name. 
+
 ```bash
 ./clatest united states
-```
+
 
   DATE       | CASES    | DEATHS | RECOVERED  
 -------------|----------|--------|------------
   2021-03-26 | 30156621 | 548087 | 0 
+```
 
+If you want to get all the data since a given date, use the `from` argument: 
 
 ```bash
 ./clatest united states --from 2021-03-01
-```
-
   DATE       | CASES    | DEATHS | RECOVERED  
 -------------|----------|--------|------------
   2021-03-01 | 28705285 | 515524 | 0          
@@ -61,13 +67,57 @@ Flags:
   2021-03-25 | 30079282 | 546822 | 0          
   2021-03-26 | 30156621 | 548087 | 0
 
-```bash
-./clatest united states --from 2021-03-01 --to 2021-03-03
 ```
 
+It's also possible to add the `to` argument limit the range of data that is returned. 
+
+```bash
+./clatest united states --from 2021-03-01 --to 2021-03-03
   DATE       | CASES    | DEATHS | RECOVERED  
 -------------|----------|--------|------------
   2021-03-01 | 28705285 | 515524 | 0          
   2021-03-02 | 28762326 | 517467 | 0          
   2021-03-03 | 28829520 | 519957 | 0   
+```
 
+You can even use `on` to get the data for a given date. 
+
+```bash
+./clatest united states --on 2021-03-01
+  DATE       | CASES    | DEATHS | RECOVERED  
+-------------|----------|--------|------------
+  2021-03-01 | 28705285 | 515524 | 0          
+```
+
+
+## Format Options
+
+The tool provides two different format types: markdown and csv. By default the tool outputs everything to standard out as markdown. To output the data s json, you can use the following: 
+
+```bash
+./clatest united states --from 2021-03-01 --to 2021-03-03 --format csv
+Date,Cases,Deaths,Recovered
+2021-03-01,28705285,515524,0
+2021-03-02,28762326,517467,0
+2021-03-03,28829520,519957,0
+```
+
+## Saving Options
+
+If you want to save the output to a file, you can either pipe the output to file using the following method:
+
+```bash
+./clatest united states --from 2021-03-01 --to 2021-03-03 --format csv > test.csv
+cat test.csv
+Date,Cases,Deaths,Recovered
+2021-03-01,28705285,515524,0
+2021-03-02,28762326,517467,0
+2021-03-03,28829520,519957,0
+```
+
+Alternatively you can use the `file` argument to save the data to file.
+
+```bash
+./clatest united states --from 2021-03-01 --to 2021-03-03 --format csv --file ./test.csv
+cat test.csv
+```
