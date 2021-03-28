@@ -26,7 +26,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var from, to, exact, format string
+var from, to, exact, format, outFile string
 var latest = false
 var RequestURI = "https://disease.sh/v3/covid-19/historical/%v?lastdays=%v"
 
@@ -38,16 +38,29 @@ var rootCmd = &cobra.Command{
 statistics. The data is downloaded from disease.sh and is sourced from John 
 Hopkins.
 	`,
-	Version: "v0.0.1",
+	Version: "v0.0.2",
 	Args:    cobra.MinimumNArgs(1),
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	Run: func(cmd *cobra.Command, args []string) {
-		err := run_cmd(strings.Join(args[:], " "), RequestURI, from, to, exact, format, os.Stdout)
+		var err error
+		switch {
+		case outFile != "":
+			f, err := os.Create(outFile)
+			if err != nil {
+				fmt.Println(err)
+				os.Exit(1)
+			}
+			defer f.Close()
+			err = run_cmd(strings.Join(args[:], " "), RequestURI, from, to, exact, format, f)
+		default:
+			err = run_cmd(strings.Join(args[:], " "), RequestURI, from, to, exact, format, os.Stdout)
+		}
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
+
 	},
 }
 
@@ -68,7 +81,8 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(&from, "from", "f", yesterday, "first date to download data for")
 	rootCmd.PersistentFlags().StringVarP(&to, "to", "t", today, "last date to download data for")
 	rootCmd.PersistentFlags().StringVarP(&exact, "on", "o", "", "A single date to get")
-	rootCmd.PersistentFlags().StringVar(&format, "format", "markdown", "Output format (markdown, csv, tab)")
+	rootCmd.PersistentFlags().StringVar(&format, "format", "markdown", "Output format (markdown, csv)")
+	rootCmd.PersistentFlags().StringVar(&outFile, "file", "", "file path and name (if desired)")
 
 }
 
